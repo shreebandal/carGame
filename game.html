@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Game</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <style>
+        * {margin:0;padding: 0;font-family: fantasy;}
+        .carGame{width: 100%;height: 100vh;background-image: url('bg.jpg');background-repeat: no-repeat;background-size:100% 100% ;}
+        .hide{display: none;}
+        .car{ width: 50px;height: 70px;background-image: url('car.png');background-repeat: no-repeat;background-size:100% 100% ;position: absolute;bottom: 120px;}
+        .gameArea{width: 500px;height: 100vh;background: grey;margin:auto;position: relative;overflow: hidden;border-right: 7px dashed white;border-left:  7px dashed white;}
+        .lines{width: 10px;height: 100px;background: white;position: absolute;margin-left: 245px;}
+        .enemy{ width: 50px;height: 70px;background-image: url('enemyCar.png');background-repeat: no-repeat;background-size:100% 100% ;position: absolute;}
+        .score{position: absolute;top:100px;left: 40px;background: green;width: 300px;height: 70px;text-align: center;color: white;font-size: 1.5em;box-shadow: 0 5px 5px #777;line-height: 70px;}
+        .startScreen{position: absolute;background-color: red;left: 50%;top: 50%;transform: translate(-50%,-50%);color: white;z-index: 1;text-align: center;border: 1px solid #ff6b6b; padding: 15px;margin: auto;width: 50%;cursor: pointer;letter-spacing: 5;font-size: 20px;word-spacing: 3;line-height: 30px;text-transform: uppercase;box-shadow: 0 5px 5px #777;}
+        .maxscore{position: absolute;top:15px;left: 40px;background: green;width: 300px;height: 70px;text-align: center;color: white;font-size: 1.5em;box-shadow: 0 5px 5px #777;line-height: 70px;}
+    </style>
+</head>
+<body>
+    <div class="carGame">
+        <div class="maxscore hide">
+            
+        </div>
+        <div class="score hide">
+            
+        </div>
+        <div class="startScreen">
+            <p>
+                JS Car Game <br>
+                Arrow keys to move <br>
+                If you hit car you will loose
+            </p> 
+            <button class="btn btn-lg btn-primary">Click Here to Start</button>      
+        </div>
+        <div class="gameArea hide">
+            
+        </div>
+    </div>
+
+    <script>
+        let audio = new Audio('music.mp3') 
+
+        const maxscore = document.querySelector('.maxscore')
+        const score = document.querySelector('.score')
+        const startScreen = document.querySelector('.startScreen')
+        const gameArea = document.querySelector('.gameArea')
+
+        let keys = { ArrowUp : false , ArrowDown : false , ArrowRight : false , ArrowLeft : false}
+        let player = { speed : 5 , score : 0}
+        let lines = {}
+        let increasSpeed = 0
+
+        document.addEventListener('keydown',(e)=>{
+            e.preventDefault()
+            keys[e.key] = true
+        })
+        document.addEventListener('keyup',(e)=>{
+            e.preventDefault()
+            keys[e.key] = false
+        })
+        function isCollide(a,b){
+            let aRect = a.getBoundingClientRect()
+            let bRect = b.getBoundingClientRect()
+
+            return !((aRect.bottom<bRect.top) || (aRect.top>bRect.bottom) || (aRect.right<bRect.left) || (aRect.left>bRect.right))
+        }
+        function moveLines(){
+            let lines = document.querySelectorAll('.lines')
+            
+            lines.forEach((item)=>{
+                let temp = item.offsetTop    
+                if(temp >= 640){
+                    temp -= 730
+                }
+                temp += player.speed
+                item.style.top = temp + "px"
+            })
+        }
+        function mmoveEnemyCar(car){
+            let lines = document.querySelectorAll('.enemy')
+            
+            lines.forEach((item)=>{
+                let temp = item.offsetTop
+                if(isCollide(car,item)){
+                    player.start = false
+                    clearInterval(increasSpeed)
+                    audio.pause()
+                    document.querySelector('.carGame').innerHTML = `<div class="startScreen">
+                                                    <p>
+                                                        JS Car Game <br>
+                                                        oops Game over.... <br>
+                                                        Your score is ${player.score}
+                                                    </p> 
+                                                    <button onclick="location.reload(true)" class="btn btn-lg btn-primary">Click Here to Start Again</button>      
+                                                </div>`
+                    if (localStorage.maxscore) {
+                        if(localStorage.maxscore < player.score)
+                            localStorage.maxscore = player.score
+                    } else {
+                        localStorage.maxscore = player.score
+                    }
+                }  
+                if(temp >= 640){
+                    temp -= 700
+                    item.style.left = Math.floor(Math.random()*430)+"px"
+                }
+                temp += player.speed - 3
+                item.style.top = temp + "px"
+            })
+        }
+        function gamePlay(){
+            let car = document.querySelector('.car')
+            let road = gameArea.getBoundingClientRect()
+
+            if(player.start){
+                audio.play()
+                moveLines()
+                mmoveEnemyCar(car)
+                if(keys.ArrowUp && player.y > (road.top)){player.y -= player.speed }
+                else if(keys.ArrowDown && player.y < (road.bottom-75)){player.y += player.speed }
+                else if(keys.ArrowRight && player.x < (road.width-50)){player.x += player.speed }
+                else if(keys.ArrowLeft && player.x > 0 ){player.x -= player.speed }
+                car.style.top = player.y + "px"
+                car.style.left = player.x + "px"
+                window.requestAnimationFrame(gamePlay)
+                player.score++
+                score.innerText = "Score : " + player.score
+            }
+        }
+        document.querySelector('.btn').addEventListener('click',()=>{
+            maxscore.classList.remove('hide')
+            gameArea.classList.remove('hide')
+            score.classList.remove('hide')
+            startScreen.classList.add('hide')
+            if (localStorage.maxscore) {
+                maxscore.innerHTML = "Max Score : "+ localStorage.maxscore
+            } else {
+                maxscore.innerHTML = "Max Score : "+ 0
+            }
+            player.start = true
+            window.requestAnimationFrame(gamePlay)
+            for(x=0;x<5;x++){
+                let roadLine = document.createElement('div')
+                roadLine.setAttribute('class','lines')
+                roadLine.style.top = (x*150) + "px"
+                gameArea.appendChild(roadLine)
+            }
+            gameArea.innerHTML += `
+            <div class="car"></div>
+            `
+            let car = document.querySelector('.car')
+            player.x = car.offsetLeft
+            player.y = car.offsetTop 
+
+            for(x=0;x<3;x++){
+                let enemyCar = document.createElement('div')
+                enemyCar.setAttribute('class','enemy')
+                enemyCar.style.top = (x*250) + "px"
+                enemyCar.style.left = Math.floor(Math.random()*430)+"px"
+                gameArea.appendChild(enemyCar)
+            }
+            increasSpeed = setInterval(()=>{ player.speed++ }, 30000);
+        })
+    </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
+</body>
+</html>
